@@ -562,9 +562,26 @@ def recursiveBacktrackingWithInferences(assignment, csp, orderValuesMethod,
 
 
 def revise(assignment, csp, var1, var2, constraint):
+    """
+    :param Assignment assignment:
+    :param ConstraintSatisfactionProblem csp:
+    :param str var1:
+    :param str var2:
+    :param BinaryConstraint constraint:
+    :rtype: set[(str, T)]
+    """
+    domains = assignment.varDomains
     inferences = set([])
-    """Question 5"""
-    """YOUR CODE HERE"""
+    for val2 in domains[var2]:
+        is_consistent = any(constraint.isSatisfied(val1, val2) for val1 in domains[var1])
+        if not is_consistent:
+            inferences.add((var2, val2))
+
+    if len(inferences) == len(domains[var2]):
+        return None
+
+    for var, val in inferences:
+        domains[var].remove(val)
 
     return inferences
 
@@ -587,11 +604,37 @@ def revise(assignment, csp, var1, var2, constraint):
 """
 
 
-def maintainArcConsistency(assignment, csp, var, value):
+def maintainArcConsistency(assignment, csp, var=None, value=None, initialQueue=False):
+    """
+
+    :param Assignment assignment:
+    :param ConstraintSatisfactionProblem csp:
+    :param str var:
+    :param T value:
+    :rtype: set[(str, T)]
+    """
     inferences = set([])
-    """Hint: implement revise first and use it as a helper function"""
-    """Question 5"""
-    """YOUR CODE HERE"""
+    queue = util.Queue()
+    domains = assignment.varDomains
+    if initialQueue:
+        for constraint in csp.binaryConstraints:
+            queue.push((constraint.var1, constraint.var2, constraint))
+            queue.push((constraint.var2, constraint.var1, constraint))
+    else:
+        for constraint in csp.concerned_constraints(var):
+            queue.push((var, constraint.otherVariable(var), constraint))
+
+    while not queue.isEmpty():
+        var1, var2, constraint = queue.pop()
+        inference = revise(assignment, csp, var1, var2, constraint)
+        if inference is None:
+            for _var, _val in inferences:
+                domains[_var].add(_val)
+            return None
+        if inference:
+            for _constraint in csp.concerned_constraints(var2):
+                queue.push((var2, _constraint.otherVariable(var2), _constraint))
+            inferences |= inference
 
     return inferences
 
@@ -610,11 +653,9 @@ def maintainArcConsistency(assignment, csp, var, value):
 
 
 def AC3(assignment, csp):
-    inferences = set([])
-    """Hint: implement revise first and use it as a helper function"""
-    """Question 6"""
-    """YOUR CODE HERE"""
-
+    ret = maintainArcConsistency(assignment, csp, initialQueue=True)
+    if ret is None:
+        return None
     return assignment
 
 
